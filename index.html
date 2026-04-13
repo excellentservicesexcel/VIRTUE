@@ -9,30 +9,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+
 <style>
   /* ===== RESET & BASE ===== */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --beige: #F5EFE6;
-    --beige-dark: #EDE4D6;
-    --beige-border: #DDD4C4;
+    --beige: #FAF6F0;
+    --beige-dark: #F0E8DD;
+    --beige-border: #E8DFD3;
     --brown: #5A4633;
     --brown-light: #8C6E52;
     --caramel: #C8A96A;
-    --caramel-light: #E8D9B8;
+    --caramel-light: #F4EBD8;
     --olive: #7A8B5A;
     --olive-light: #EAF3DE;
     --text: #3A2E22;
-    --text-muted: #7A6A58;
+    --text-muted: #8E7C68;
     --white: #FFFFFF;
     --green-done: #5A7A3A;
     --green-bg: #EAF3DE;
     --green-border: #B4D48A;
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+    --radius-sm: 14px;
+    --radius-md: 20px;
+    --radius-lg: 24px;
+    --shadow-soft: 0 8px 24px rgba(90, 70, 51, 0.06);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  html, body { height: 100%; background: #EDE4D6; font-family: Georgia, 'Times New Roman', serif; color: var(--text); }
+  html, body { height: 100%; background: #F0E8DD; font-family: var(--font-ui); color: var(--text); }
+  h1, h2, h3, .app-name, .verse-text { font-family: Georgia, 'Times New Roman', serif; }
 
   /* ===== APP SHELL ===== */
   #app {
@@ -43,248 +49,259 @@
     display: flex;
     flex-direction: column;
     position: relative;
+    box-shadow: 0 0 40px rgba(0,0,0,0.05);
   }
 
   /* ===== TOP BAR ===== */
   .topbar {
     background: var(--beige);
-    padding: 20px 20px 12px;
-    border-bottom: 0.5px solid var(--beige-border);
+    padding: 24px 24px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
+    z-index: 10;
   }
-  .topbar-left .greeting { font-size: 12px; color: var(--text-muted); font-family: sans-serif; letter-spacing: 0.5px; }
-  .topbar-left .app-name { font-size: 22px; color: var(--brown); letter-spacing: 2px; font-weight: normal; }
-  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-left .greeting { font-size: 13px; color: var(--text-muted); letter-spacing: 0.5px; font-weight: 500;}
+  .topbar-left .app-name { font-size: 26px; color: var(--brown); letter-spacing: 1px; font-weight: normal; margin-top: 2px;}
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
   .level-pill {
-    font-size: 11px; padding: 4px 12px; border-radius: 20px;
-    background: var(--caramel); color: var(--brown);
-    font-family: sans-serif; font-weight: 500; cursor: pointer;
+    font-size: 12px; padding: 6px 14px; border-radius: 20px;
+    background: var(--caramel-light); color: var(--brown);
+    font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(200, 169, 106, 0.2);
   }
   .btn-icon {
-    background: none; border: none; cursor: pointer; color: var(--brown);
-    display: flex; align-items: center; justify-content: center; transition: opacity 0.2s;
+    background: var(--white); border: none; cursor: pointer; color: var(--brown);
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    width: 38px; height: 38px; border-radius: 50%; box-shadow: var(--shadow-soft);
   }
-  .btn-icon:hover { opacity: 0.7; }
+  .btn-icon:hover { transform: scale(1.05); }
 
   /* ===== MODALS & OVERLAYS ===== */
   .overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(58, 46, 34, 0.4); backdrop-filter: blur(5px); z-index: 9999;
-    display: none; align-items: center; justify-content: center; padding: 20px;
+    background: rgba(58, 46, 34, 0.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px;
     opacity: 0; transition: opacity 0.3s ease;
   }
   .overlay.active { display: flex; opacity: 1; }
   .overlay-content {
-    background: var(--beige); border-radius: 20px;
-    width: 100%; max-width: 350px; padding: 24px; 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-    transform: translateY(20px); transition: transform 0.3s ease;
+    background: var(--white); border-radius: 28px;
+    width: 100%; max-width: 350px; padding: 30px 24px; 
+    box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+    transform: scale(0.95) translateY(10px); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
-  .overlay.active .overlay-content { transform: translateY(0); }
+  .overlay.active .overlay-content { transform: scale(1) translateY(0); }
   
   .input-field {
-    width: 100%; border: 0.5px solid var(--beige-border); border-radius: var(--radius-sm);
-    padding: 12px; font-size: 14px; background: var(--white); color: var(--text);
-    outline: none; margin-bottom: 12px; font-family: sans-serif; transition: all 0.2s;
+    width: 100%; border: 1px solid transparent; border-radius: var(--radius-sm);
+    padding: 14px 16px; font-size: 14px; background: #F7F4F0; color: var(--text);
+    outline: none; margin-bottom: 12px; font-family: var(--font-ui); transition: all 0.2s;
   }
-  .input-field:focus { border-color: var(--caramel); box-shadow: 0 0 0 2px var(--caramel-light); }
+  .input-field:focus { background: var(--white); border-color: var(--caramel); box-shadow: 0 0 0 4px var(--caramel-light); }
   
   /* LOGIN & CADASTRO ESPECÍFICO */
   .auth-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: var(--beige); z-index: 10000; display: none; flex-direction: column;
     align-items: center; justify-content: center; padding: 20px;
-    background-image: radial-gradient(circle at top right, var(--beige-dark) 0%, var(--beige) 70%);
+    background-image: radial-gradient(circle at top right, #FFFFFF 0%, var(--beige) 80%);
   }
-  .auth-card {
-    background: var(--white); padding: 30px 24px; border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(90, 70, 51, 0.08); width: 100%; max-width: 320px;
-    text-align: center;
-  }
-
-  /* ===== UPLOAD PROGRESS UI ===== */
-  .upload-banner {
-    display: none; background: var(--olive-light); border-bottom: 0.5px solid var(--green-border);
-    padding: 10px 20px; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 100;
-  }
-  .upload-banner-text { font-size: 11px; color: var(--green-done); font-family: sans-serif; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-  .upload-banner-bar { flex: 1; margin: 0 12px; height: 6px; background: rgba(90, 122, 58, 0.2); border-radius: 3px; overflow: hidden; }
-  .upload-banner-fill { height: 100%; background: var(--green-done); width: 0%; transition: width 0.2s linear; }
-  .upload-banner-pct { font-size: 12px; color: var(--green-done); font-family: sans-serif; font-weight: bold; }
-
-  .progress-modal-content { text-align: center; }
-  .progress-modal-pct { font-size: 38px; font-weight: bold; color: var(--brown); margin: 16px 0 8px; font-family: sans-serif; }
-  .progress-modal-desc { font-size: 13px; color: var(--text-muted); font-family: sans-serif; margin-bottom: 20px; }
-  .progress-modal-bar { width: 100%; height: 10px; background: var(--beige-dark); border-radius: 5px; overflow: hidden; margin-bottom: 24px; }
-  .progress-modal-fill { height: 100%; background: var(--olive); width: 0%; transition: width 0.2s linear; }
+  .auth-card { background: transparent; width: 100%; max-width: 320px; text-align: center; }
 
   /* ===== PERFIL ===== */
   .profile-header {
-    width: calc(100% + 48px); margin: -24px -24px 40px -24px;
-    height: 120px; background: var(--beige-dark); 
-    border-radius: 20px 20px 0 0; position: relative;
+    width: calc(100% + 48px); margin: -30px -24px 40px -24px;
+    height: 140px; background: #F7F4F0; 
+    border-radius: 28px 28px 0 0; position: relative;
     background-size: cover; background-position: center;
   }
   .profile-cover-btn {
-    position: absolute; top: 12px; right: 12px;
-    background: rgba(0,0,0,0.4); color: white; border: none; padding: 6px 10px;
-    border-radius: 20px; font-size: 11px; cursor: pointer; font-family: sans-serif;
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); color: white; border: none; padding: 8px 14px;
+    border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; letter-spacing: 0.5px;
   }
   .profile-avatar-wrapper {
-    position: absolute; bottom: -35px; left: 24px;
-    width: 80px; height: 80px; border-radius: 50%;
-    border: 4px solid var(--beige); background: var(--white);
+    position: absolute; bottom: -40px; left: 24px;
+    width: 86px; height: 86px; border-radius: 50%;
+    border: 4px solid var(--white); background: #F7F4F0;
     background-size: cover; background-position: center; z-index: 2;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden;
   }
   .profile-avatar-btn {
-    position: absolute; bottom: 0; right: 0; width: 100%; height: 26px;
-    background: rgba(0,0,0,0.5); color: white; border: none;
-    font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    position: absolute; bottom: 0; right: 0; width: 100%; height: 28px;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); color: white; border: none;
+    font-size: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
 
-  /* ===== VÍDEOS DEVOCIONAIS ===== */
+  /* ESTILOS DO CROPPER */
+  #crop-modal .overlay-content { max-width: 380px; padding: 24px; }
+  .cropper-container { border-radius: 16px; overflow: hidden; }
+
+  /* ===== VÍDEOS E COMENTÁRIOS ===== */
   .video-card {
-    background: var(--white); border-radius: var(--radius-lg);
-    border: 0.5px solid var(--beige-border); padding: 16px; margin-bottom: 16px;
+    background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft);
+    padding: 18px; margin-bottom: 20px;
   }
-  .video-wrapper {
-    border-radius: var(--radius-md); overflow: hidden; margin-bottom: 12px; background: #000;
-  }
+  .video-wrapper { border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 14px; background: #000; }
   .video-wrapper video { width: 100%; display: block; max-height: 400px; }
-  .video-title { font-size: 15px; font-weight: bold; color: var(--brown); margin-bottom: 6px; font-family: sans-serif; display:flex; align-items:center; gap:8px;}
-  .video-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; font-family: sans-serif; }
-  .like-section { display: flex; align-items: center; gap: 8px; border-top: 0.5px solid var(--beige-border); padding-top: 12px; }
-  .like-btn { background: none; border: none; cursor: pointer; color: var(--beige-border); transition: all 0.2s; display: flex; align-items: center; }
-  .like-btn.liked { color: #e74c3c; }
-  .like-users { font-size: 12px; color: var(--text-muted); font-family: sans-serif; flex: 1; }
+  .video-title { font-size: 16px; font-family: Georgia, serif; font-weight: bold; color: var(--brown); margin-bottom: 8px; display:flex; align-items:center; gap:8px;}
+  .video-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.6; }
+  .like-section { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--beige-border); padding-top: 14px; }
+  .like-btn { background: #F7F4F0; border-radius: 50%; width: 40px; height: 40px; border: none; cursor: pointer; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0;}
+  .like-btn.liked { background: #FDE8E8; color: #e74c3c; }
+  .like-btn.liked svg { fill: #e74c3c; stroke: #e74c3c; }
+  .like-users { font-size: 13px; color: var(--text-muted); flex: 1; line-height: 1.4; }
   
-  .admin-actions { display: flex; gap: 8px; margin-top: 12px; border-top: 0.5px solid var(--beige-border); padding-top: 12px; }
+  .comment-section { margin-top: 14px; border-top: 1px dashed var(--beige-border); padding-top: 14px; }
+  .comment-item { display: flex; gap: 10px; margin-bottom: 12px; }
+  .comment-avatar { width: 32px; height: 32px; border-radius: 50%; background-size: cover; background-position: center; background-color: #F7F4F0; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .comment-content { flex: 1; background: #F7F4F0; padding: 10px 14px; border-radius: 4px 16px 16px 16px; }
+  .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .comment-name { font-size: 13px; font-weight: 700; color: var(--brown); }
+  .comment-text { font-size: 14px; color: var(--text); line-height: 1.4; }
+  .comment-actions { display: flex; gap: 12px; margin-top: 4px; padding-left: 42px; }
+  .comment-action-btn { font-size: 11px; font-weight: 700; color: var(--text-muted); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: color 0.2s; }
+  .comment-action-btn:hover { color: var(--brown); }
+  .comment-action-btn.liked { color: #e74c3c; }
+  .add-comment-form { display: flex; gap: 8px; margin-top: 16px; }
+  .add-comment-input { flex: 1; border: 1px solid var(--beige-border); border-radius: 20px; padding: 10px 16px; font-size: 13px; outline: none; background: #F7F4F0; transition: all 0.2s;}
+  .add-comment-input:focus { background: var(--white); border-color: var(--caramel); }
+  .add-comment-btn { background: var(--brown); color: white; border: none; border-radius: 20px; padding: 10px 16px; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform 0.2s; }
+  .add-comment-btn:hover { transform: scale(1.05); }
+
+  .admin-actions { display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid var(--beige-border); padding-top: 14px; }
 
   /* BOTOES SOCIAIS */
   .btn-social {
-    padding: 10px 16px; border-radius: var(--radius-sm); border: none; font-size: 13px; font-weight: bold; 
-    font-family: sans-serif; cursor: pointer; text-decoration: none; display: inline-flex; 
-    align-items: center; justify-content: center; width: 100%; margin-bottom: 12px; transition: opacity 0.2s;
+    padding: 12px 18px; border-radius: var(--radius-sm); border: none; font-size: 13px; font-weight: 600; 
+    cursor: pointer; text-decoration: none; display: inline-flex; 
+    align-items: center; justify-content: center; width: 100%; margin-bottom: 14px; transition: transform 0.2s;
   }
-  .btn-social:hover { opacity: 0.85; }
+  .btn-social:hover { transform: translateY(-2px); }
   .bg-instagram { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white; }
   .bg-facebook { background: #1877F2; color: white; }
   .bg-youtube { background: #FF0000; color: white; }
   .bg-default { background: var(--brown); color: white; }
 
   /* ===== SCROLLABLE CONTENT ===== */
-  .content { flex: 1; overflow-y: auto; padding-bottom: 80px; }
-  .screen { display: none; padding: 20px; }
-  .screen.active { display: block; }
-  .section-title { font-size: 11px; color: var(--text-muted); font-family: sans-serif; letter-spacing: 1.5px; text-transform: uppercase; margin: 16px 0 10px; }
+  .content { flex: 1; overflow-y: auto; padding: 0 24px 100px; }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .section-title { font-size: 12px; color: var(--text-muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin: 24px 0 12px; display: flex; justify-content: space-between; align-items: center;}
 
   /* ===== RESTANTE DA INTERFACE ===== */
-  .verse-card { background: var(--white); border-radius: var(--radius-lg); border: 0.5px solid var(--beige-border); padding: 22px 20px; margin-bottom: 16px; text-align: center; }
-  .verse-ref { font-size: 11px; color: var(--caramel); font-family: sans-serif; letter-spacing: 1.5px; margin-bottom: 10px; }
-  .verse-text { font-size: 15px; color: var(--text); line-height: 1.8; font-style: italic; }
+  .verse-card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 28px 24px; margin-bottom: 20px; text-align: center; }
+  .verse-ref { font-size: 12px; color: var(--caramel); font-weight: 700; letter-spacing: 2px; margin-bottom: 14px; text-transform: uppercase; }
+  .verse-text { font-size: 17px; color: var(--text); line-height: 1.7; font-style: italic; }
 
-  .progress-wrap { margin-bottom: 4px; }
-  .progress-label { font-size: 12px; color: var(--text-muted); font-family: sans-serif; display: flex; justify-content: space-between; margin-bottom: 6px; }
-  .progress-track { height: 6px; background: var(--beige-dark); border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--olive); border-radius: 3px; transition: width 0.4s ease; }
+  .progress-wrap { margin-bottom: 8px; background: var(--white); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
+  .progress-label { font-size: 13px; font-weight: 600; color: var(--brown); display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .progress-track { height: 8px; background: #F7F4F0; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--olive); border-radius: 4px; transition: width 0.5s cubic-bezier(0.25, 0.8, 0.25, 1); }
 
-  .checklist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-  .check-item { display: flex; align-items: center; gap: 14px; background: var(--white); border-radius: var(--radius-sm); border: 0.5px solid var(--beige-border); padding: 13px 15px; cursor: pointer; transition: all 0.2s; user-select: none; }
-  .check-item:hover { border-color: var(--caramel); }
-  .check-item.done { background: var(--green-bg); border-color: var(--green-border); }
-  .check-circle { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--caramel); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .checklist { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .check-item { display: flex; align-items: center; gap: 16px; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-soft); padding: 16px 20px; cursor: pointer; transition: all 0.2s; user-select: none; border: 1px solid transparent; }
+  .check-item:hover { transform: translateY(-2px); }
+  .check-item.done { background: var(--green-bg); border-color: rgba(180, 212, 138, 0.5); }
+  .check-circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--caramel); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
   .check-item.done .check-circle { background: var(--olive); border-color: var(--olive); }
   .check-tick { display: none; }
-  .check-item.done .check-tick { display: block; width: 10px; height: 6px; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg) translateY(-1px); }
-  .check-label { font-size: 14px; font-family: sans-serif; color: var(--text); }
-  .check-item.done .check-label { color: var(--green-done); text-decoration: line-through; }
+  .check-item.done .check-tick { display: block; width: 11px; height: 7px; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg) translateY(-1px); }
+  .check-label { font-size: 15px; font-weight: 500; color: var(--text); transition: color 0.2s; }
+  .check-item.done .check-label { color: var(--green-done); text-decoration: line-through; opacity: 0.8; }
 
-  .frase-card { background: var(--brown); border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px; text-align: center; }
-  .frase-card p { font-size: 14px; color: var(--beige); line-height: 1.7; font-style: italic; }
+  .frase-card { background: var(--brown); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px; text-align: center; box-shadow: 0 10px 30px rgba(90, 70, 51, 0.15); }
+  .frase-card p { font-size: 15px; color: var(--beige); line-height: 1.6; font-family: Georgia, serif; font-style: italic; }
 
-  .streak-banner { background: var(--caramel-light); border-radius: var(--radius-md); padding: 16px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; border: 0.5px solid var(--caramel); }
-  .streak-num { font-size: 32px; color: var(--brown); font-family: sans-serif; font-weight: 500; }
-  .streak-info { font-size: 13px; font-family: sans-serif; color: var(--brown); line-height: 1.5; }
-  .habit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-  .habit-card { background: var(--white); border-radius: var(--radius-md); border: 0.5px solid var(--beige-border); padding: 16px 12px; cursor: pointer; text-align: center; transition: all 0.2s; user-select: none; }
-  .habit-card:hover { border-color: var(--caramel); }
-  .habit-card.done { background: var(--green-bg); border-color: var(--green-border); }
-  .habit-card .icon { font-size: 26px; margin-bottom: 8px; }
-  .habit-card .h-name { font-size: 13px; font-family: sans-serif; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .streak-banner { background: var(--white); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow-soft); border-left: 4px solid var(--caramel); }
+  .streak-num { font-size: 38px; color: var(--caramel); font-weight: 700; line-height: 1; }
+  .streak-info { font-size: 14px; color: var(--text); line-height: 1.5; font-weight: 500; }
+  .habit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .habit-card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 20px 14px; cursor: pointer; text-align: center; transition: all 0.2s; user-select: none; border: 1px solid transparent; }
+  .habit-card:hover { transform: translateY(-3px); }
+  .habit-card.done { background: var(--green-bg); border-color: rgba(180, 212, 138, 0.5); }
+  .habit-card .icon { font-size: 32px; margin-bottom: 12px; display: block; }
+  .habit-card .h-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
   .habit-card.done .h-name { color: var(--green-done); }
-  .habit-card .h-streak { font-size: 11px; font-family: sans-serif; color: var(--caramel); }
+  .habit-card .h-streak { font-size: 12px; color: var(--caramel); font-weight: 500; }
 
-  .esp-block { background: var(--white); border-radius: var(--radius-md); border: 0.5px solid var(--beige-border); padding: 16px 18px; margin-bottom: 14px; }
-  .esp-block h3 { font-size: 14px; font-family: sans-serif; font-weight: 500; color: var(--brown); margin-bottom: 10px; }
-  .esp-block p { font-size: 13px; font-family: sans-serif; color: var(--text-muted); line-height: 1.7; margin-bottom: 12px; }
+  .esp-block { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 22px; margin-bottom: 16px; }
+  .esp-block h3 { font-size: 16px; font-family: Georgia, serif; color: var(--brown); margin-bottom: 12px; }
+  .esp-block p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
   
-  .btn-caramel { font-size: 12px; padding: 10px 16px; border-radius: 20px; border: 0.5px solid var(--caramel); background: transparent; color: var(--brown); cursor: pointer; font-family: sans-serif; transition: background 0.2s; }
-  .btn-caramel:hover { background: var(--caramel-light); }
-  .btn-caramel.done-btn { background: var(--green-bg); border-color: var(--green-border); color: var(--green-done); }
-  .btn-brown { padding: 12px 18px; border-radius: var(--radius-sm); background: var(--brown); color: var(--beige); border: none; font-size: 14px; font-weight: 500; font-family: sans-serif; cursor: pointer; transition: opacity 0.2s; display: inline-flex; justify-content: center; align-items: center;}
-  .btn-brown:hover { opacity: 0.85; }
-  .btn-brown:disabled { background: var(--beige-border); cursor: not-allowed; }
+  .btn-caramel { font-size: 13px; font-weight: 600; padding: 12px 18px; border-radius: 14px; border: none; background: var(--caramel-light); color: var(--brown); cursor: pointer; transition: all 0.2s; display: inline-flex; justify-content: center; align-items: center;}
+  .btn-caramel:hover { filter: brightness(0.95); transform: translateY(-1px); }
+  .btn-caramel.done-btn { background: var(--green-bg); color: var(--green-done); }
+  .btn-brown { padding: 14px 20px; border-radius: 14px; background: var(--brown); color: var(--white); border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(90, 70, 51, 0.2); }
+  .btn-brown:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90, 70, 51, 0.25); }
 
-  textarea.diario { width: 100%; border: 0.5px solid var(--beige-border); border-radius: var(--radius-sm); padding: 12px; font-family: Georgia, serif; font-size: 14px; color: var(--text); background: var(--beige); resize: vertical; min-height: 120px; outline: none; line-height: 1.6; }
-  textarea.diario:focus { border-color: var(--caramel); }
-  .oracao-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .oracao-item { display: flex; justify-content: space-between; align-items: center; background: var(--beige); border-radius: var(--radius-sm); border: 0.5px solid var(--beige-border); padding: 10px 14px; }
-  .oracao-text { font-size: 13px; font-family: sans-serif; color: var(--text); }
-  .oracao-badge { font-size: 11px; padding: 2px 10px; border-radius: 20px; background: var(--beige-dark); color: var(--text-muted); font-family: sans-serif; cursor: pointer; transition: all 0.2s; border: none; }
-  .oracao-badge:hover { background: var(--green-bg); color: var(--green-done); }
-  .oracao-badge.respondida { background: var(--green-bg); color: var(--green-done); }
-  .add-oracao-form { display: flex; gap: 8px; }
-  .add-oracao-form input { flex: 1; border: 0.5px solid var(--beige-border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; font-family: sans-serif; background: var(--beige); color: var(--text); outline: none; }
+  textarea.diario { width: 100%; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 16px; font-family: Georgia, serif; font-size: 15px; color: var(--text); background: #F7F4F0; resize: vertical; min-height: 140px; outline: none; line-height: 1.7; transition: all 0.2s; }
+  textarea.diario:focus { background: var(--white); border-color: var(--caramel); box-shadow: 0 0 0 4px var(--caramel-light); }
+  
+  .oracao-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .oracao-item { display: flex; justify-content: space-between; align-items: center; background: #F7F4F0; border-radius: var(--radius-sm); padding: 12px 16px; }
+  .oracao-text { font-size: 14px; font-weight: 500; color: var(--text); }
+  .oracao-badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; background: var(--white); color: var(--text-muted); cursor: pointer; transition: all 0.2s; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .oracao-badge:hover { transform: scale(1.05); }
+  .oracao-badge.respondida { background: var(--green-done); color: var(--white); }
+  
+  .add-oracao-form { display: flex; gap: 10px; }
+  .add-oracao-form input { flex: 1; border: none; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 14px; background: #F7F4F0; color: var(--text); outline: none; }
+  .add-oracao-form input:focus { background: var(--white); box-shadow: 0 0 0 2px var(--caramel-light); }
 
-  .planner-header { margin-bottom: 14px; }
-  .planner-header h2 { font-size: 17px; color: var(--brown); font-family: sans-serif; font-weight: 500; }
-  .planner-header p { font-size: 12px; color: var(--text-muted); font-family: sans-serif; margin-top: 2px; }
-  .add-task-form { display: flex; gap: 8px; margin-bottom: 12px; }
-  .add-task-form input { flex: 1; border: 0.5px solid var(--beige-border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; font-family: sans-serif; background: var(--white); color: var(--text); outline: none; }
-  .task-list { display: flex; flex-direction: column; gap: 8px; }
-  .task-item { display: flex; align-items: center; gap: 12px; background: var(--white); border-radius: var(--radius-sm); border: 0.5px solid var(--beige-border); padding: 12px 14px; }
-  .task-item.done { background: var(--green-bg); border-color: var(--green-border); }
-  .task-cb { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--caramel); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .planner-header { margin-bottom: 20px; background: var(--white); padding: 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
+  .planner-header h2 { font-size: 20px; color: var(--brown); margin-bottom: 4px; }
+  .planner-header p { font-size: 14px; color: var(--text-muted); }
+  
+  .add-task-form { display: flex; gap: 10px; margin-bottom: 16px; }
+  .add-task-form input { flex: 1; border: none; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 14px; background: var(--white); color: var(--text); outline: none; box-shadow: var(--shadow-soft); }
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task-item { display: flex; align-items: center; gap: 14px; background: var(--white); border-radius: var(--radius-sm); box-shadow: var(--shadow-soft); padding: 16px; transition: all 0.2s; border: 1px solid transparent;}
+  .task-item.done { background: var(--green-bg); border-color: rgba(180, 212, 138, 0.3); }
+  .task-cb { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--caramel); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
   .task-item.done .task-cb { background: var(--olive); border-color: var(--olive); }
-  .task-tick { display: none; width: 9px; height: 5px; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg) translateY(-1px); }
+  .task-tick { display: none; width: 10px; height: 6px; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg) translateY(-1px); }
   .task-item.done .task-tick { display: block; }
-  .task-text { font-size: 13px; font-family: sans-serif; color: var(--text); flex: 1; }
-  .task-item.done .task-text { text-decoration: line-through; color: var(--green-done); }
-  .task-del { font-size: 16px; color: var(--beige-border); cursor: pointer; background: none; border: none; padding: 0 4px; transition: color 0.2s; }
+  .task-text { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; transition: color 0.2s; }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--green-done); opacity: 0.7; }
+  .task-del { font-size: 20px; color: #D1C7BD; cursor: pointer; background: none; border: none; padding: 0 4px; transition: color 0.2s; }
+  .task-del:hover { color: #e74c3c; }
 
-  .fem-intro { background: var(--white); border-radius: var(--radius-md); border: 0.5px solid var(--beige-border); padding: 16px 18px; margin-bottom: 14px; }
-  .fem-intro p { font-size: 14px; font-family: sans-serif; color: var(--text-muted); line-height: 1.7; font-style: italic; }
-  .auto-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-  .auto-item { display: flex; align-items: center; gap: 14px; background: var(--white); border-radius: var(--radius-sm); border: 0.5px solid var(--beige-border); padding: 13px 15px; cursor: pointer; transition: all 0.2s; user-select: none; }
-  .auto-item:hover { border-color: var(--caramel); }
-  .auto-item.done { background: var(--green-bg); border-color: var(--green-border); }
-  .auto-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+  .fem-intro { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 24px; margin-bottom: 20px; text-align: center; }
+  .fem-intro p { font-size: 15px; color: var(--brown); line-height: 1.6; font-family: Georgia, serif; font-style: italic; }
+  .auto-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .auto-item { display: flex; align-items: center; gap: 16px; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-soft); padding: 16px 20px; cursor: pointer; transition: all 0.2s; user-select: none; border: 1px solid transparent; }
+  .auto-item:hover { transform: translateY(-2px); }
+  .auto-item.done { background: var(--green-bg); border-color: rgba(180, 212, 138, 0.3); }
+  .auto-icon { font-size: 24px; width: 32px; text-align: center; flex-shrink: 0; }
   .auto-info { flex: 1; }
-  .auto-name { font-size: 14px; font-family: sans-serif; color: var(--text); font-weight: 500; }
-  .auto-item.done .auto-name { color: var(--green-done); text-decoration: line-through; }
-  .auto-desc { font-size: 12px; font-family: sans-serif; color: var(--text-muted); margin-top: 2px; }
-  .auto-cb { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--caramel); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .auto-name { font-size: 15px; color: var(--text); font-weight: 600; }
+  .auto-item.done .auto-name { color: var(--green-done); text-decoration: line-through; opacity: 0.8; }
+  .auto-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .auto-cb { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--caramel); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
   .auto-item.done .auto-cb { background: var(--olive); border-color: var(--olive); }
-  .auto-tick { display: none; width: 10px; height: 6px; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg) translateY(-1px); }
+  .auto-tick { display: none; width: 11px; height: 7px; border-left: 2px solid var(--white); border-bottom: 2px solid var(--white); transform: rotate(-45deg) translateY(-1px); }
   .auto-item.done .auto-tick { display: block; }
-  .guia-card { background: var(--brown); border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 10px; cursor: pointer; }
-  .guia-card h4 { font-size: 14px; font-family: sans-serif; font-weight: 500; color: var(--caramel); margin-bottom: 6px; }
-  .guia-card p { font-size: 13px; font-family: sans-serif; color: var(--beige); line-height: 1.6; }
+  
+  .guia-card { background: var(--brown); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow-soft); position: relative;}
+  .guia-card h4 { font-size: 16px; font-family: Georgia, serif; font-weight: bold; color: var(--caramel); margin-bottom: 8px; }
+  .guia-card p { font-size: 14px; color: var(--white); line-height: 1.6; opacity: 0.9; }
 
   /* ===== BOTTOM NAV ===== */
   .bottomnav {
-    position: sticky; bottom: 0; background: var(--beige); border-top: 0.5px solid var(--beige-border);
-    display: flex; justify-content: space-around; align-items: center; padding: 10px 0 18px; flex-shrink: 0; z-index: 10;
+    position: fixed; bottom: 0; max-width: 390px; width: 100%; 
+    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0,0,0,0.03); display: flex; justify-content: space-around; 
+    align-items: center; padding: 12px 0 24px; z-index: 10; box-shadow: 0 -10px 30px rgba(0,0,0,0.03);
   }
-  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 6px 14px; border-radius: 10px; transition: background 0.2s; border: none; background: transparent; }
-  .nav-btn:hover { background: var(--beige-dark); }
-  .nav-btn.active { background: var(--beige-dark); }
-  .nav-btn svg { width: 22px; height: 22px; }
-  .nav-btn span { font-size: 10px; font-family: sans-serif; color: var(--text-muted); letter-spacing: 0.3px; }
-  .nav-btn.active span { color: var(--brown); font-weight: 500; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; border: none; background: transparent; }
+  .nav-btn:hover { background: #F7F4F0; }
+  .nav-btn.active { background: #F7F4F0; transform: translateY(-2px); }
+  .nav-btn svg { width: 24px; height: 24px; stroke: #A39687; transition: stroke 0.2s; }
+  .nav-btn span { font-size: 11px; font-weight: 600; color: #A39687; letter-spacing: 0.3px; transition: color 0.2s; }
+  .nav-btn.active span { color: var(--brown); }
   .nav-btn.active svg { stroke: var(--brown) !important; }
 </style>
 </head>
@@ -292,12 +309,14 @@
 
 <div id="login-screen" class="auth-screen" style="display:flex;">
   <div class="auth-card">
-    <h1 style="color:var(--brown); font-family:Georgia, serif; font-size: 34px; margin-bottom:4px;">Virtue</h1>
-    <p style="color:var(--text-muted); font-family:sans-serif; font-size:14px; margin-bottom:26px;">Bem-vinda de volta.</p>
-    <input type="text" id="login-user" class="input-field" placeholder="Nome de usuário (Ex: Maria)">
-    <input type="password" id="login-pass" class="input-field" placeholder="Sua Senha">
-    <button onclick="doLogin()" class="btn-brown" style="width:100%; margin-top:8px;">Entrar no App</button>
-    <div style="margin-top:20px; font-size:13px; font-family:sans-serif; color:var(--text-muted);">
+    <div style="background: var(--white); padding: 40px 24px; border-radius: 32px; box-shadow: 0 20px 40px rgba(90,70,51,0.08);">
+      <h1 style="color:var(--brown); font-size: 38px; margin-bottom:8px;">Virtue</h1>
+      <p style="color:var(--text-muted); font-size:15px; margin-bottom:32px;">Bem-vinda de volta.</p>
+      <input type="text" id="login-user" class="input-field" placeholder="Nome de usuário (Ex: Maria)">
+      <input type="password" id="login-pass" class="input-field" placeholder="Sua Senha">
+      <button onclick="doLogin()" class="btn-brown" style="width:100%; margin-top:12px;">Entrar no App</button>
+    </div>
+    <div style="margin-top:24px; font-size:14px; color:var(--text-muted); font-weight: 500;">
       Ainda não é membro? <a href="#" onclick="showRegister()" style="color:var(--brown); font-weight:bold; text-decoration:none;">Criar conta</a>
     </div>
   </div>
@@ -305,12 +324,14 @@
 
 <div id="register-screen" class="auth-screen">
   <div class="auth-card">
-    <h1 style="color:var(--brown); font-family:Georgia, serif; font-size: 28px; margin-bottom:4px;">Cadastro</h1>
-    <p style="color:var(--text-muted); font-family:sans-serif; font-size:13px; margin-bottom:26px;">Junte-se à comunidade Virtue.</p>
-    <input type="text" id="reg-user" class="input-field" placeholder="Nome de usuário escolhido">
-    <input type="password" id="reg-pass" class="input-field" placeholder="Crie uma senha">
-    <button onclick="doRegister()" class="btn-brown" style="width:100%; margin-top:8px;">Solicitar Acesso</button>
-    <div style="margin-top:20px; font-size:13px; font-family:sans-serif; color:var(--text-muted);">
+    <div style="background: var(--white); padding: 40px 24px; border-radius: 32px; box-shadow: 0 20px 40px rgba(90,70,51,0.08);">
+      <h1 style="color:var(--brown); font-size: 32px; margin-bottom:8px;">Cadastro</h1>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom:32px;">Junte-se à comunidade Virtue.</p>
+      <input type="text" id="reg-user" class="input-field" placeholder="Nome de usuário escolhido">
+      <input type="password" id="reg-pass" class="input-field" placeholder="Crie uma senha">
+      <button onclick="doRegister()" class="btn-brown" style="width:100%; margin-top:12px;">Solicitar Acesso</button>
+    </div>
+    <div style="margin-top:24px; font-size:14px; color:var(--text-muted); font-weight: 500;">
       Já tem uma conta? <a href="#" onclick="showLogin()" style="color:var(--brown); font-weight:bold; text-decoration:none;">Fazer login</a>
     </div>
   </div>
@@ -325,32 +346,45 @@
       </div>
     </div>
     
-    <input type="file" id="file-photo" style="display:none" accept="image/*" onchange="uploadImage(event, 'photo')">
-    <input type="file" id="file-cover" style="display:none" accept="image/*" onchange="uploadImage(event, 'cover')">
+    <input type="file" id="file-photo" style="display:none" accept="image/*" onchange="openCropModal(event, 'photo')">
+    <input type="file" id="file-cover" style="display:none" accept="image/*" onchange="openCropModal(event, 'cover')">
 
-    <h3 style="color:var(--brown); margin-bottom:16px; font-family:sans-serif;">Configurar Dados</h3>
+    <h3 style="color:var(--brown); margin-bottom:20px; font-family:Georgia, serif;">Configurar Dados</h3>
     <input type="text" id="set-user" class="input-field" placeholder="Nome de usuário de exibição">
     <input type="password" id="set-pass" class="input-field" placeholder="Alterar senha">
-    <div style="display:flex; gap:10px; margin-top:8px;">
-      <button class="btn-caramel" style="flex:1;" onclick="closeSettings()">Cancelar</button>
+    <div style="display:flex; gap:12px; margin-top:12px;">
+      <button class="btn-caramel" style="flex:1; background: #F7F4F0;" onclick="closeSettings()">Cancelar</button>
       <button class="btn-brown" style="flex:1;" onclick="saveSettings()">Salvar</button>
     </div>
-    <button class="btn-caramel" style="width:100%; margin-top:16px; color:#c0392b; border-color:#e6a8a1;" onclick="doLogout()">Sair da Conta</button>
+    <button class="btn-caramel" style="width:100%; margin-top:20px; background: #FFF0F0; color:#c0392b;" onclick="doLogout()">Sair da Conta</button>
+  </div>
+</div>
+
+<div class="overlay" id="crop-modal">
+  <div class="overlay-content">
+    <h3 style="color:var(--brown); margin-bottom:16px; text-align:center; font-family:Georgia, serif;">Ajustar Imagem</h3>
+    <div style="width: 100%; max-height: 350px; border-radius: 16px; overflow: hidden; margin-bottom: 20px; background: #000;">
+      <img id="crop-image" style="max-width: 100%; display: block;">
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button class="btn-caramel" style="flex:1; background: #F7F4F0;" onclick="closeCropModal()">Cancelar</button>
+      <button class="btn-brown" style="flex:1;" onclick="confirmCrop()">Aplicar Ajuste</button>
+    </div>
   </div>
 </div>
 
 <div class="overlay" id="add-video-modal">
   <div class="overlay-content">
-    <h3 id="modal-video-title" style="color:var(--brown); margin-bottom:16px; font-family:sans-serif;">Novo Vídeo (Admin)</h3>
+    <h3 id="modal-video-title" style="color:var(--brown); margin-bottom:20px; font-family:Georgia, serif;">Novo Vídeo (Admin)</h3>
     
-    <label style="font-size:12px; color:var(--text-muted); font-family:sans-serif; margin-bottom:4px; display:block;">Link do Vídeo (YouTube, Insta, MP4...):</label>
-    <input type="url" id="vid-url" class="input-field" placeholder="Cole o link aqui...">
+    <label style="font-size:13px; font-weight: 600; color:var(--text-muted); margin-bottom:6px; display:block;">Link do Vídeo:</label>
+    <input type="url" id="vid-url" class="input-field" placeholder="YouTube, Insta, MP4...">
     
     <input type="text" id="vid-title" class="input-field" placeholder="Título do Devocional">
-    <textarea id="vid-desc" class="input-field" placeholder="Descrição da publicação..." style="min-height:80px; resize:vertical;"></textarea>
+    <textarea id="vid-desc" class="input-field" placeholder="Descrição da publicação..." style="min-height:90px; resize:vertical;"></textarea>
     
-    <label style="font-size:12px; color:var(--text-muted); font-family:sans-serif; margin-bottom:4px; display:block;">Botão Personalizado Opcional (Usa o mesmo link):</label>
-    <select id="vid-platform" class="input-field" style="width:100%; margin-bottom:12px; padding: 12px 6px;">
+    <label style="font-size:13px; font-weight: 600; color:var(--text-muted); margin-bottom:6px; display:block;">Botão Personalizado:</label>
+    <select id="vid-platform" class="input-field" style="width:100%; margin-bottom:16px;">
       <option value="">Sem botão extra</option>
       <option value="Instagram">Instagram</option>
       <option value="Facebook">Facebook</option>
@@ -358,38 +392,22 @@
       <option value="Link">Acessar Link</option>
     </select>
 
-    <label style="font-size:12px; color:var(--text-muted); font-family:sans-serif; margin-bottom:4px; display:block;">Data e Hora da Postagem:</label>
+    <label style="font-size:13px; font-weight: 600; color:var(--text-muted); margin-bottom:6px; display:block;">Data da Postagem:</label>
     <input type="datetime-local" id="vid-date" class="input-field">
     
-    <div style="display:flex; gap:10px; margin-top:8px;">
-      <button class="btn-caramel" style="flex:1;" onclick="document.getElementById('add-video-modal').classList.remove('active')">Cancelar</button>
+    <div style="display:flex; gap:12px; margin-top:12px;">
+      <button class="btn-caramel" style="flex:1; background: #F7F4F0;" onclick="document.getElementById('add-video-modal').classList.remove('active')">Cancelar</button>
       <button id="btn-postar" class="btn-brown" style="flex:1;" onclick="saveVideo()">Postar</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="upload-progress-modal">
-  <div class="overlay-content progress-modal-content">
-    <h3 style="color:var(--brown); font-family:sans-serif;">Enviando Vídeo</h3>
-    <div class="progress-modal-pct" id="upload-pct-text">0%</div>
-    <div class="progress-modal-desc">Por favor, não feche o aplicativo.</div>
-    <div class="progress-modal-bar">
-      <div class="progress-modal-fill" id="upload-bar-fill"></div>
-    </div>
-    <div style="display:flex; gap:10px;">
-      <button class="btn-caramel" id="btn-pause-resume" style="flex:1; padding: 0 4px;" onclick="togglePauseResume()">Pausar</button>
-      <button class="btn-caramel" style="flex:1; color:#c0392b; border-color:#e6a8a1; padding: 0 4px;" onclick="cancelUpload()">Cancelar</button>
-      <button class="btn-brown" style="flex:1; padding: 0 4px;" onclick="waitUpload()">Aguardar</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="admin-users-modal">
   <div class="overlay-content" style="max-height: 85vh; display:flex; flex-direction:column;">
-    <h3 style="color:var(--brown); margin-bottom:16px; font-family:sans-serif;">Gerenciar Usuários</h3>
-    <div id="admin-users-list" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px;">
-      </div>
-    <button class="btn-caramel" style="width:100%; margin-top:16px;" onclick="document.getElementById('admin-users-modal').classList.remove('active')">Fechar Painel</button>
+    <h3 style="color:var(--brown); margin-bottom:20px; font-family:Georgia, serif;">Gerenciar Usuários</h3>
+    <div id="admin-users-list" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px; padding-right: 4px;">
+    </div>
+    <button class="btn-caramel" style="width:100%; margin-top:20px; background: #F7F4F0;" onclick="document.getElementById('admin-users-modal').classList.remove('active')">Fechar Painel</button>
   </div>
 </div>
 
@@ -402,20 +420,12 @@
     <div class="topbar-right">
       <div class="level-pill" id="level-pill">Nível 2 — Em processo</div>
       <button class="btn-icon" onclick="openSettings()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
     </div>
-  </div>
-
-  <div class="upload-banner" id="bg-upload-banner" onclick="restoreUploadUI()" style="cursor:pointer;" title="Clique para abrir as opções">
-    <div class="upload-banner-text">Enviando Vídeo</div>
-    <div class="upload-banner-bar">
-      <div class="upload-banner-fill" id="bg-upload-fill"></div>
-    </div>
-    <div class="upload-banner-pct" id="bg-upload-pct">0%</div>
   </div>
 
   <div class="content">
@@ -461,9 +471,9 @@
     <div class="screen" id="sc-habitos">
       <div class="streak-banner">
         <div class="streak-num" id="streak-count">7</div>
-        <div class="streak-info">dias consecutivos<br>Continue firme! Você está crescendo.</div>
+        <div class="streak-info">dias consecutivos<br><span style="color:var(--text-muted); font-size:13px;">Continue firme! Você está crescendo.</span></div>
       </div>
-      <div class="section-title">Hábitos de hoje</div>
+      <div class="section-title">Hábitos</div>
       <div class="habit-grid" id="habit-grid">
         <div class="habit-card" onclick="toggleHabit(this)">
           <div class="icon">🌅</div>
@@ -500,14 +510,14 @@
 
     <div class="screen" id="sc-espiritual">
       
-      <div id="admin-panel" style="display:none; margin-bottom:16px;">
-        <div style="display:flex; gap:8px;">
+      <div id="admin-panel" style="display:none; margin-bottom:20px;">
+        <div style="display:flex; gap:12px;">
             <button class="btn-brown" style="flex:1; gap:8px;" onclick="openAddVideoModal()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-              Postar Vídeo
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Postar
             </button>
             <button class="btn-brown" style="flex:1; background:var(--olive); gap:8px;" onclick="openAdminUsers()">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
               Usuários
             </button>
         </div>
@@ -515,30 +525,30 @@
       
       <div class="section-title" id="feed-title" style="display:none;">Vídeos Devocionais</div>
       
-      <div id="video-filter-container" style="display:none; margin-bottom: 16px;">
-        <select id="video-date-filter" class="input-field" style="margin-bottom: 0; font-weight: bold; color: var(--brown); border-color: var(--beige-border);" onchange="renderVideos()">
-           </select>
+      <div id="video-filter-container" style="display:none; margin-bottom: 20px;">
+        <select id="video-date-filter" class="input-field" style="margin-bottom: 0; font-weight: bold; color: var(--brown); background: var(--white); box-shadow: var(--shadow-soft);" onchange="renderVideos()">
+        </select>
       </div>
 
-      <div id="video-feed" style="margin-bottom:20px;"></div>
+      <div id="video-feed" style="margin-bottom:24px;"></div>
       
       <div class="esp-block">
         <h3>Devocional de hoje</h3>
         <p>A mulher virtuosa de Provérbios 31 não é uma figura inatingível — ela é o retrato de quem escolhe, dia após dia, agir com sabedoria, amor e fé. Hoje, reflita: em qual área da sua vida você pode agir com mais virtude?</p>
-        <button class="btn-caramel" id="dev-btn" onclick="marcarDevocional()">Lido — marcar como concluído</button>
+        <button class="btn-caramel" style="width: 100%;" id="dev-btn" onclick="marcarDevocional()">Lido — marcar como concluído</button>
       </div>
       <div class="esp-block">
         <h3>Plano de leitura bíblica</h3>
-        <p>Semana 15 — Provérbios. Hoje: Provérbios 31</p>
-        <div style="height:6px;background:#EDE4D6;border-radius:3px;overflow:hidden;margin-bottom:10px">
-          <div style="width:62%;height:100%;background:#7A8B5A;border-radius:3px"></div>
+        <p style="margin-bottom: 8px;">Semana 15 — Provérbios. Hoje: Provérbios 31</p>
+        <div style="height:8px;background:#F7F4F0;border-radius:4px;overflow:hidden;margin-bottom:10px">
+          <div style="width:62%;height:100%;background:#7A8B5A;border-radius:4px"></div>
         </div>
-        <span style="font-size:12px;font-family:sans-serif;color:#7A6A58">62% do plano concluído</span>
+        <span style="font-size:13px; font-weight:600; color:var(--caramel)">62% concluído</span>
       </div>
       <div class="esp-block">
         <h3>Diário espiritual</h3>
         <textarea class="diario" id="diario-text" placeholder="Escreva sua reflexão de hoje, o que Deus falou ao seu coração..."></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <div style="display:flex;justify-content:flex-end;margin-top:12px">
           <button class="btn-caramel" onclick="salvarDiario()">Salvar reflexão</button>
         </div>
       </div>
@@ -549,18 +559,10 @@
             <span class="oracao-text">Cura da minha mãe</span>
             <button class="oracao-badge" onclick="toggleRespondida(this)">respondida?</button>
           </div>
-          <div class="oracao-item">
-            <span class="oracao-text">Sabedoria para o trabalho</span>
-            <button class="oracao-badge" onclick="toggleRespondida(this)">respondida?</button>
-          </div>
-          <div class="oracao-item">
-            <span class="oracao-text">Meu casamento</span>
-            <button class="oracao-badge" onclick="toggleRespondida(this)">respondida?</button>
-          </div>
         </div>
         <div class="add-oracao-form">
           <input type="text" id="oracao-input" placeholder="Novo pedido de oração..." onkeydown="if(event.key==='Enter')addOracao()">
-          <button class="btn-brown" onclick="addOracao()">+</button>
+          <button class="btn-brown" style="padding: 12px 18px;" onclick="addOracao()">+</button>
         </div>
       </div>
     </div>
@@ -571,28 +573,13 @@
         <p id="planner-sub">Organize seu dia com propósito</p>
       </div>
       <div class="add-task-form">
-        <input type="text" id="task-input" placeholder="Adicionar tarefa..." onkeydown="if(event.key==='Enter')addTask()">
-        <button class="btn-brown" onclick="addTask()">+</button>
+        <input type="text" id="task-input" placeholder="Adicionar nova tarefa..." onkeydown="if(event.key==='Enter')addTask()">
+        <button class="btn-brown" style="padding: 12px 18px;" onclick="addTask()">+</button>
       </div>
       <div class="task-list" id="task-list">
         <div class="task-item">
           <div class="task-cb" onclick="toggleTask(this.parentElement)"><div class="task-tick"></div></div>
           <span class="task-text">Separar roupas para a semana</span>
-          <button class="task-del" onclick="this.parentElement.remove()">×</button>
-        </div>
-        <div class="task-item">
-          <div class="task-cb" onclick="toggleTask(this.parentElement)"><div class="task-tick"></div></div>
-          <span class="task-text">Estudar Provérbios 31</span>
-          <button class="task-del" onclick="this.parentElement.remove()">×</button>
-        </div>
-        <div class="task-item">
-          <div class="task-cb" onclick="toggleTask(this.parentElement)"><div class="task-tick"></div></div>
-          <span class="task-text">Organizar a geladeira</span>
-          <button class="task-del" onclick="this.parentElement.remove()">×</button>
-        </div>
-        <div class="task-item">
-          <div class="task-cb" onclick="toggleTask(this.parentElement)"><div class="task-tick"></div></div>
-          <span class="task-text">Ligar para a mãe</span>
           <button class="task-del" onclick="this.parentElement.remove()">×</button>
         </div>
       </div>
@@ -602,101 +589,68 @@
       <div class="fem-intro">
         <p>"A verdadeira feminilidade não está na aparência, mas na graça, na doçura e na virtude que refletem o caráter de Deus."</p>
       </div>
-      <div class="section-title">Autocuidado de hoje</div>
-      <div class="auto-grid">
-        <div class="auto-item" onclick="toggleAuto(this)">
-          <div class="auto-icon">💆</div>
-          <div class="auto-info">
-            <div class="auto-name">Cabelo cuidado</div>
-            <div class="auto-desc">Lavado, penteado ou arrumado</div>
-          </div>
-          <div class="auto-cb"><div class="auto-tick"></div></div>
-        </div>
-        <div class="auto-item" onclick="toggleAuto(this)">
-          <div class="auto-icon">💅</div>
-          <div class="auto-info">
-            <div class="auto-name">Unhas em dia</div>
-            <div class="auto-desc">Limpas e cuidadas</div>
-          </div>
-          <div class="auto-cb"><div class="auto-tick"></div></div>
-        </div>
-        <div class="auto-item" onclick="toggleAuto(this)">
-          <div class="auto-icon">👗</div>
-          <div class="auto-info">
-            <div class="auto-name">Vestida com cuidado</div>
-            <div class="auto-desc">Roupas limpas e combinando</div>
-          </div>
-          <div class="auto-cb"><div class="auto-tick"></div></div>
-        </div>
-        <div class="auto-item" onclick="toggleAuto(this)">
-          <div class="auto-icon">🧘</div>
-          <div class="auto-info">
-            <div class="auto-name">Postura e presença</div>
-            <div class="auto-desc">Atenção à postura e ao porte</div>
-          </div>
-          <div class="auto-cb"><div class="auto-tick"></div></div>
-        </div>
-        <div class="auto-item" onclick="toggleAuto(this)">
-          <div class="auto-icon">🌸</div>
-          <div class="auto-info">
-            <div class="auto-name">Pele hidratada</div>
-            <div class="auto-desc">Hidratante, protetor solar</div>
-          </div>
-          <div class="auto-cb"><div class="auto-tick"></div></div>
-        </div>
-        <div class="auto-item" onclick="toggleAuto(this)">
-          <div class="auto-icon">😊</div>
-          <div class="auto-info">
-            <div class="auto-name">Tom de voz gentil</div>
-            <div class="auto-desc">Falar com doçura e calma</div>
-          </div>
-          <div class="auto-cb"><div class="auto-tick"></div></div>
-        </div>
+
+      <div class="section-title">
+        Autocuidado
       </div>
-      <div class="section-title">Reflexões sobre feminilidade</div>
-      <div class="guia-card">
-        <h4>Modéstia cristã</h4>
-        <p>Modéstia não é apagar-se — é ornamentar-se com graça e sabedoria. A beleza que vem de dentro reflete a glória de Deus e atrai respeito genuíno.</p>
+      <div id="admin-add-auto" style="display:none; gap:8px; margin-bottom:16px;">
+        <input type="text" id="new-auto-icon" class="input-field" placeholder="💆" style="width:60px; margin-bottom:0; text-align:center;">
+        <input type="text" id="new-auto-name" class="input-field" placeholder="Nome do item" style="flex:1; margin-bottom:0;">
+        <input type="text" id="new-auto-desc" class="input-field" placeholder="Breve descrição" style="flex:1; margin-bottom:0;">
+        <button class="btn-brown" style="padding:12px;" onclick="addAutocuidado()">+</button>
       </div>
-      <div class="guia-card">
-        <h4>O poder da doçura</h4>
-        <p>"O espírito manso e quieto é de grande valor diante de Deus." — 1 Pedro 3:4. Suavidade não é fraqueza, é força com amor.</p>
+      <div class="auto-grid" id="auto-grid">
+        </div>
+
+      <div class="section-title">
+        Reflexões sobre feminilidade
       </div>
+      <div id="admin-add-ref" style="display:none; flex-direction:column; gap:8px; margin-bottom:16px; background:var(--white); padding:16px; border-radius:var(--radius-lg); box-shadow:var(--shadow-soft);">
+        <h4 style="color:var(--brown); font-family:Georgia, serif; font-size:15px;">Adicionar Reflexão</h4>
+        <input type="text" id="new-ref-title" class="input-field" placeholder="Título da reflexão..." style="margin-bottom:0;">
+        <textarea id="new-ref-text" class="input-field" placeholder="Texto..." style="min-height:70px; margin-bottom:0; resize:vertical;"></textarea>
+        <button class="btn-brown" style="width:100%;" onclick="addReflexao()">Salvar Nova Reflexão</button>
+      </div>
+      <div id="reflexoes-list">
+        </div>
+
     </div>
 
-  </div><div class="bottomnav">
+  </div>
+  
+  <div class="bottomnav">
     <button class="nav-btn active" id="nav-home" onclick="showScreen('home', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#5A4633" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
         <path d="M9 21V12h6v9"/>
       </svg>
       <span>Início</span>
     </button>
     <button class="nav-btn" id="nav-habitos" onclick="showScreen('habitos', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#7A6A58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="9"/>
         <path d="M12 7v5l3 3"/>
       </svg>
       <span>Hábitos</span>
     </button>
     <button class="nav-btn" id="nav-espiritual" onclick="showScreen('espiritual', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#7A6A58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
       </svg>
       <span>Espiritual</span>
     </button>
     <button class="nav-btn" id="nav-planner" onclick="showScreen('planner', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#7A6A58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"/>
         <path d="M16 2v4M8 2v4M3 10h18"/>
-        <circle cx="8" cy="15" r="1" fill="#7A6A58"/>
-        <circle cx="12" cy="15" r="1" fill="#7A6A58"/>
-        <circle cx="16" cy="15" r="1" fill="#7A6A58"/>
+        <circle cx="8" cy="15" r="1"/>
+        <circle cx="12" cy="15" r="1"/>
+        <circle cx="16" cy="15" r="1"/>
       </svg>
       <span>Planner</span>
     </button>
     <button class="nav-btn" id="nav-fem" onclick="showScreen('fem', this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#7A6A58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="5"/>
         <path d="M12 13v8M9 18h6"/>
       </svg>
@@ -704,8 +658,9 @@
     </button>
   </div>
 
-</div><script>
+</div>
 
+<script>
   // ===== CONFIGURAÇÃO DO FIREBASE =====
   const firebaseConfig = {
     apiKey: "AIzaSyA0EmT6Siq-KQG0_V9qkF6QpS5XXvAIzqQ",
@@ -721,36 +676,44 @@
   const fbDB = firebase.database();
   const fbStorage = firebase.storage();
 
-  // ===== LÓGICA DE LOGIN E BANCO DE DADOS =====
-  let db = { users: {}, videos: [] };
+  // ===== VARIÁVEIS GLOBAIS =====
+  let db = { users: {}, videos: [], reflexoes: [], autocuidados: [] };
   let currentUser = null; 
-
-  let currentUploadTask = null;
-  let isUploadBackground = false;
   let editingVidId = null;
-  let isUploadPaused = false;
+  let cropperInstance = null;
+  let activeCropType = ''; 
+
+  // VERSÍCULOS DIÁRIOS (ROTAÇÃO AUTOMÁTICA FIXA)
+  const dailyVerses = [
+    { ref: "PROVÉRBIOS 31:25", text: '"Ela se reveste de força e dignidade, e ri do futuro."' },
+    { ref: "PROVÉRBIOS 31:30", text: '"A beleza é enganosa, e a formosura é passageira; mas a mulher que teme ao Senhor será elogiada."' },
+    { ref: "PROVÉRBIOS 31:10", text: '"Mulher virtuosa quem a achará? O seu valor muito excede ao de rubis."' },
+    { ref: "PROVÉRBIOS 14:1", text: '"A mulher sábia edifica a sua casa, mas a tola com as próprias mãos a derruba."' },
+    { ref: "1 PEDRO 3:4", text: '"Seja o adorno de vocês [...] o espírito manso e tranquilo, que é de grande valor diante de Deus."' },
+    { ref: "RUTE 3:11", text: '"Não temas; tudo quanto disseres te farei, pois toda a cidade do meu povo sabe que és mulher virtuosa."' }
+  ];
+
+  function setDailyWord() {
+    const today = new Date();
+    // Cria um índice consistente baseado no dia do ano
+    const dayIndex = (today.getFullYear() + today.getMonth() + today.getDate()) % dailyVerses.length;
+    document.getElementById('verse-ref').textContent = dailyVerses[dayIndex].ref;
+    document.getElementById('verse-text').textContent = dailyVerses[dayIndex].text;
+  }
 
   function saveDB() { 
-    try {
-      localStorage.setItem('virtue_db_v2', JSON.stringify(db)); // Backup Local
-      fbDB.ref('virtue_db_v2').set(db); // Sincronizando com Firebase!
-    } catch(e) {
-      console.error('Erro ao salvar:', e);
-    }
+    try { fbDB.ref('virtue_db_v2').set(db); } catch(e) { console.error('Erro ao salvar:', e); }
   }
 
   function checkAutoDelete() {
     let changed = false;
     const now = new Date();
-    
     db.videos = db.videos ? Object.values(db.videos) : [];
-
     db.videos = db.videos.filter(v => {
       const postDate = new Date(v.datetime);
       const expireDate = new Date(postDate);
       expireDate.setDate(expireDate.getDate() + 1);
       expireDate.setHours(23, 59, 59, 999); 
-
       if (now > expireDate) {
         changed = true;
         if (v.url && v.url.includes('firebasestorage')) {
@@ -761,23 +724,39 @@
       }
       return true; 
     });
-    
     if(changed) saveDB();
   }
 
   function initAuth() {
+    setDailyWord();
+    
     fbDB.ref('virtue_db_v2').on('value', (snapshot) => {
       if(snapshot.exists()) {
         db = snapshot.val();
         db.videos = db.videos ? Object.values(db.videos) : []; 
+        db.reflexoes = db.reflexoes ? Object.values(db.reflexoes) : [];
+        db.autocuidados = db.autocuidados ? Object.values(db.autocuidados) : [];
         if(!db.users) db.users = {};
         checkAutoDelete();
       } else {
-        db = { users: { 'admin': { username: 'Admin', pass: '1709', role: 'admin', status: 'approved', photo: '', cover: '' } }, videos: [] };
+        // Popula banco padrão se vazio
+        db = { 
+          users: { 'admin': { username: 'Admin', pass: '1709', role: 'admin', status: 'approved', photo: '', cover: '' } }, 
+          videos: [],
+          reflexoes: [
+            { id: '1', title: 'Modéstia cristã', text: 'Modéstia não é apagar-se — é ornamentar-se com graça e sabedoria. A beleza que vem de dentro reflete a glória de Deus e atrai respeito genuíno.' },
+            { id: '2', title: 'O poder da doçura', text: '"O espírito manso e quieto é de grande valor diante de Deus." — 1 Pedro 3:4. Suavidade não é fraqueza, é força com amor.' }
+          ],
+          autocuidados: [
+            { id: '1', icon: '💆', name: 'Cabelo cuidado', desc: 'Lavado, penteado ou arrumado' },
+            { id: '2', icon: '💅', name: 'Unhas em dia', desc: 'Limpas e cuidadas' },
+            { id: '3', icon: '👗', name: 'Vestida com cuidado', desc: 'Roupas limpas e combinando' },
+            { id: '4', icon: '🧘', name: 'Postura e presença', desc: 'Atenção à postura e ao porte' }
+          ]
+        };
         saveDB();
       }
       
-      // AJUSTE CIRÚRGICO: LocalStorage não morre ao fechar o app, só quando clica em sair!
       const savedUser = localStorage.getItem('virtue_logged_user');
       if(savedUser && db.users[savedUser] && db.users[savedUser].status === 'approved') {
         currentUser = savedUser;
@@ -785,8 +764,11 @@
       } else {
         showLogin();
       }
-      
-      if(currentUser) renderVideos();
+      if(currentUser) {
+        renderVideos();
+        renderReflexoes();
+        renderAutocuidados();
+      }
     });
   }
 
@@ -805,10 +787,8 @@
     const u = document.getElementById('reg-user').value.trim();
     const p = document.getElementById('reg-pass').value.trim();
     if(!u || !p) return alert("Preencha usuário e senha.");
-    
     const uKey = u.toLowerCase();
     if(db.users[uKey]) return alert("Este usuário já existe.");
-    
     db.users[uKey] = { username: u, pass: p, role: 'user', status: 'pending', photo: '', cover: '' };
     saveDB();
     alert("Cadastro realizado com sucesso! Aguarde a aprovação.");
@@ -819,14 +799,11 @@
     const rawU = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value.trim();
     if(!rawU || !p) return alert("Preencha usuário e senha.");
-    
     const uKey = rawU.toLowerCase();
     const userObj = db.users[uKey];
-
     if(!userObj) return alert("Usuário não encontrado.");
     if(userObj.pass !== p) return alert("Senha incorreta!");
     if(userObj.status === 'pending') return alert("Seu cadastro ainda está em análise pelo administrador.");
-    
     currentUser = uKey;
     localStorage.setItem('virtue_logged_user', uKey);
     document.getElementById('login-user').value = '';
@@ -835,11 +812,9 @@
   }
 
   function doLogout() {
-    // AJUSTE CIRÚRGICO: Agora usa LocalStorage pra deslogar real
     localStorage.removeItem('virtue_logged_user');
     currentUser = null;
-    document.getElementById('settings-modal').classList.remove('active');
-    showLogin();
+    window.location.reload(); // Limpa estado em memória recarregando
   }
 
   function showApp() {
@@ -847,12 +822,14 @@
     document.getElementById('register-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     
-    if(db.users[currentUser].role === 'admin') {
-      document.getElementById('admin-panel').style.display = 'block';
-    } else {
-      document.getElementById('admin-panel').style.display = 'none';
-    }
+    const isAdmin = db.users[currentUser].role === 'admin';
+    document.getElementById('admin-panel').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('admin-add-ref').style.display = isAdmin ? 'flex' : 'none';
+    document.getElementById('admin-add-auto').style.display = isAdmin ? 'flex' : 'none';
+    
     renderVideos();
+    renderReflexoes();
+    renderAutocuidados();
   }
 
   // ===== GERENCIAMENTO DE USUÁRIOS =====
@@ -868,23 +845,24 @@
       const u = db.users[k];
       const isPending = u.status === 'pending';
       const btnColor = isPending ? 'var(--olive)' : '#c0392b';
+      const btnBg = isPending ? 'var(--green-bg)' : '#FFF0F0';
       const btnText = isPending ? 'Permitir Acesso' : 'Bloquear';
       
       let actionBtns = '';
       if(u.role !== 'admin') {
         actionBtns = `
-          <button style="background:${btnColor}; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; cursor:pointer;" onclick="toggleUserStatus('${k}')">${btnText}</button>
-          <button style="background:transparent; color:#c0392b; border:1px solid #c0392b; padding:6px 12px; border-radius:6px; font-size:11px; cursor:pointer;" onclick="deleteUser('${k}')">Excluir</button>
+          <button style="background:${btnBg}; color:${btnColor}; border:none; padding:8px 14px; border-radius:10px; font-weight:600; font-size:12px; cursor:pointer;" onclick="toggleUserStatus('${k}')">${btnText}</button>
+          <button style="background:transparent; color:#c0392b; border:1px solid rgba(192,57,43,0.3); padding:8px 14px; border-radius:10px; font-weight:600; font-size:12px; cursor:pointer;" onclick="deleteUser('${k}')">Excluir</button>
         `;
       } else {
-        actionBtns = `<span style="font-size:12px; font-weight:bold; color:var(--caramel);">Administrador</span>`;
+        actionBtns = `<span style="font-size:12px; font-weight:bold; color:var(--caramel); padding: 8px 0;">Administrador</span>`;
       }
 
       list.innerHTML += `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid var(--beige-border); border-radius:var(--radius-sm); background:var(--white);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-radius:var(--radius-md); background:var(--white); box-shadow:var(--shadow-soft);">
           <div>
-            <div style="font-weight:bold; font-size:15px; color:var(--brown); font-family:sans-serif;">${u.username}</div>
-            <div style="font-size:12px; color:var(--text-muted); font-family:sans-serif; margin-top:4px;">
+            <div style="font-weight:bold; font-size:16px; color:var(--brown);">${u.username}</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:6px; font-weight:500;">
               Status: ${isPending ? '<span style="color:#e67e22;">Aguardando Aprovação</span>' : '<span style="color:var(--green-done);">Aprovado</span>'}
             </div>
           </div>
@@ -897,7 +875,7 @@
   function toggleUserStatus(uKey) { db.users[uKey].status = db.users[uKey].status === 'pending' ? 'approved' : 'pending'; saveDB(); renderAdminUsers(); }
   function deleteUser(uKey) { if(confirm("Deseja excluir " + db.users[uKey].username + "?")) { delete db.users[uKey]; saveDB(); renderAdminUsers(); } }
 
-  // ===== CONFIGURAÇÕES =====
+  // ===== CONFIGURAÇÕES E CROPPER =====
   function openSettings() {
     const u = db.users[currentUser];
     document.getElementById('set-user').value = u.username;
@@ -906,19 +884,52 @@
     document.getElementById('display-avatar').style.backgroundImage = u.photo ? `url(${u.photo})` : 'none';
     document.getElementById('settings-modal').classList.add('active');
   }
-
   function closeSettings() { document.getElementById('settings-modal').classList.remove('active'); }
 
-  function uploadImage(event, type) {
+  function openCropModal(event, type) {
     const file = event.target.files[0];
     if(!file) return;
+    
+    activeCropType = type;
     const reader = new FileReader();
+    
     reader.onload = function(e) {
-      if(type === 'photo') { db.users[currentUser].photo = e.target.result; document.getElementById('display-avatar').style.backgroundImage = `url(${e.target.result})`; } 
-      else { db.users[currentUser].cover = e.target.result; document.getElementById('display-cover').style.backgroundImage = `url(${e.target.result})`; }
-      saveDB();
+      document.getElementById('crop-image').src = e.target.result;
+      document.getElementById('crop-modal').classList.add('active');
+      
+      if(cropperInstance) cropperInstance.destroy();
+      let ratio = type === 'photo' ? 1 / 1 : 16 / 9;
+      
+      cropperInstance = new Cropper(document.getElementById('crop-image'), {
+        aspectRatio: ratio, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: true, center: true, highlight: false, cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false,
+      });
     };
     reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  function closeCropModal() {
+    document.getElementById('crop-modal').classList.remove('active');
+    if(cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+  }
+
+  function confirmCrop() {
+    if(!cropperInstance) return;
+    const canvas = cropperInstance.getCroppedCanvas({
+      width: activeCropType === 'photo' ? 400 : 800,
+      height: activeCropType === 'photo' ? 400 : 450,
+      imageSmoothingEnabled: true, imageSmoothingQuality: 'high',
+    });
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85); 
+    
+    if(activeCropType === 'photo') { 
+      db.users[currentUser].photo = dataUrl; 
+      document.getElementById('display-avatar').style.backgroundImage = `url(${dataUrl})`; 
+    } else { 
+      db.users[currentUser].cover = dataUrl; 
+      document.getElementById('display-cover').style.backgroundImage = `url(${dataUrl})`; 
+    }
+    saveDB(); closeCropModal();
   }
 
   function saveSettings() {
@@ -932,7 +943,6 @@
     if(newKey !== currentUser) {
       if(db.users[newKey]) return alert("Usuário já em uso.");
       db.users[newKey] = db.users[currentUser]; db.users[newKey].username = rawU; delete db.users[currentUser];
-      
       db.videos.forEach(v => { 
         v.likes = v.likes ? Object.values(v.likes) : []; 
         let idx = v.likes.indexOf(currentUser); 
@@ -943,8 +953,84 @@
     db.users[currentUser].username = rawU; db.users[currentUser].pass = p; saveDB(); closeSettings(); renderVideos();
   }
 
-  // ===== GERENCIAMENTO DE VÍDEOS =====
+  // ===== GERENCIAMENTO DE CONTEÚDOS FIXOS (Admin) =====
+  function renderAutocuidados() {
+    const list = document.getElementById('auto-grid');
+    list.innerHTML = '';
+    const isAdmin = db.users[currentUser].role === 'admin';
+    
+    (db.autocuidados || []).forEach(a => {
+      let adminHtml = isAdmin ? `<button style="background:none; border:none; color:#D1C7BD; font-size:20px; margin-right:-8px; cursor:pointer;" onclick="event.stopPropagation(); deleteAutocuidado('${a.id}')">×</button>` : '';
+      list.innerHTML += `
+      <div class="auto-item" onclick="toggleAuto(this)">
+        <div class="auto-icon">${a.icon}</div>
+        <div class="auto-info">
+          <div class="auto-name">${a.name}</div>
+          <div class="auto-desc">${a.desc}</div>
+        </div>
+        ${adminHtml}
+        <div class="auto-cb"><div class="auto-tick"></div></div>
+      </div>`;
+    });
+  }
 
+  function addAutocuidado() {
+    const icon = document.getElementById('new-auto-icon').value.trim() || '✨';
+    const name = document.getElementById('new-auto-name').value.trim();
+    const desc = document.getElementById('new-auto-desc').value.trim();
+    if(!name) return alert("Nome do autocuidado é obrigatório!");
+    
+    db.autocuidados = db.autocuidados || [];
+    db.autocuidados.push({ id: Date.now().toString(), icon, name, desc });
+    
+    document.getElementById('new-auto-icon').value = '';
+    document.getElementById('new-auto-name').value = '';
+    document.getElementById('new-auto-desc').value = '';
+    saveDB(); renderAutocuidados();
+  }
+
+  function deleteAutocuidado(id) {
+    if(!confirm("Excluir item de autocuidado?")) return;
+    db.autocuidados = (db.autocuidados || []).filter(a => String(a.id) !== String(id));
+    saveDB(); renderAutocuidados();
+  }
+
+  function renderReflexoes() {
+    const list = document.getElementById('reflexoes-list');
+    list.innerHTML = '';
+    const isAdmin = db.users[currentUser].role === 'admin';
+    
+    (db.reflexoes || []).forEach(r => {
+      let adminHtml = isAdmin ? `<button style="position:absolute; top:12px; right:12px; background:none; border:none; color:var(--beige-border); font-size:20px; cursor:pointer;" onclick="deleteReflexao('${r.id}')">×</button>` : '';
+      list.innerHTML += `
+      <div class="guia-card">
+        <h4>${r.title}</h4>
+        <p>${r.text}</p>
+        ${adminHtml}
+      </div>`;
+    });
+  }
+
+  function addReflexao() {
+    const title = document.getElementById('new-ref-title').value.trim();
+    const text = document.getElementById('new-ref-text').value.trim();
+    if(!title || !text) return alert("Preencha o título e o texto.");
+    
+    db.reflexoes = db.reflexoes || [];
+    db.reflexoes.push({ id: Date.now().toString(), title, text });
+    
+    document.getElementById('new-ref-title').value = '';
+    document.getElementById('new-ref-text').value = '';
+    saveDB(); renderReflexoes();
+  }
+
+  function deleteReflexao(id) {
+    if(!confirm("Excluir esta reflexão permanentemente?")) return;
+    db.reflexoes = (db.reflexoes || []).filter(r => String(r.id) !== String(id));
+    saveDB(); renderReflexoes();
+  }
+
+  // ===== GERENCIAMENTO DE VÍDEOS =====
   function openAddVideoModal() {
     editingVidId = null;
     document.getElementById('vid-title').value = '';
@@ -978,16 +1064,12 @@
        const fileRef = fbStorage.refFromURL(v.url);
        fileRef.delete().catch(e => console.log('Erro ao deletar do Storage:', e));
     }
-    
-    // AJUSTE CIRÚRGICO: Força o sumiço automático após deletar!
     db.videos = db.videos.filter(x => String(x.id) !== String(id));
-    saveDB();
-    renderVideos(); 
+    saveDB(); renderVideos(); 
   }
 
   function saveVideo() {
     db.videos = db.videos ? Object.values(db.videos) : []; 
-
     const url = document.getElementById('vid-url').value.trim();
     const title = document.getElementById('vid-title').value.trim();
     const desc = document.getElementById('vid-desc').value.trim();
@@ -999,96 +1081,90 @@
     if (editingVidId) {
        const v = db.videos.find(x => String(x.id) === String(editingVidId));
        if(v) {
-          v.url = url; 
-          v.title = title; 
-          v.desc = desc; 
-          v.datetime = dt; 
-          v.platform = platform; 
-          v.socialLink = url; 
-          saveDB(); renderVideos();
-          document.getElementById('add-video-modal').classList.remove('active');
-          alert("Vídeo atualizado com sucesso!");
+          v.url = url; v.title = title; v.desc = desc; v.datetime = dt; v.platform = platform; v.socialLink = url; 
+          saveDB(); renderVideos(); document.getElementById('add-video-modal').classList.remove('active');
        }
        return;
     }
 
-    db.videos.push({ 
-        id: Date.now().toString(), 
-        url: url, 
-        title: title, 
-        desc: desc, 
-        datetime: dt, 
-        likes: [], 
-        platform: platform, 
-        socialLink: url 
-    });
-    
-    saveDB(); 
-    document.getElementById('add-video-modal').classList.remove('active');
-    renderVideos();
+    db.videos.push({ id: Date.now().toString(), url: url, title: title, desc: desc, datetime: dt, likes: [], comments: [], platform: platform, socialLink: url });
+    saveDB(); document.getElementById('add-video-modal').classList.remove('active'); renderVideos();
   }
-
-  function togglePauseResume() {}
-  function restoreUploadUI() {}
-  function waitUpload() {}
-  function cancelUpload() {}
-  function closeUploadUI() { document.getElementById('upload-progress-modal').classList.remove('active'); document.getElementById('bg-upload-banner').style.display = 'none'; }
 
   function toggleLikeVideo(vidId) {
     db.videos = db.videos ? Object.values(db.videos) : [];
     const v = db.videos.find(x => String(x.id) === String(vidId));
     if(!v) return;
-    
     v.likes = v.likes ? Object.values(v.likes) : []; 
     const idx = v.likes.indexOf(currentUser);
-    if(idx > -1) v.likes.splice(idx, 1);
-    else v.likes.push(currentUser);
-    saveDB();
-    renderVideos();
+    if(idx > -1) v.likes.splice(idx, 1); else v.likes.push(currentUser);
+    saveDB(); renderVideos();
   }
 
-  // AJUSTE CIRÚRGICO: Melhorado para reproduzir direto no player HTML e não redirecionar
+  function toggleLikeComment(vidId, commentId) {
+    db.videos = db.videos ? Object.values(db.videos) : [];
+    const v = db.videos.find(x => String(x.id) === String(vidId));
+    if(!v || !v.comments) return;
+    const c = v.comments.find(x => String(x.id) === String(commentId));
+    if(!c) return;
+    
+    c.likes = c.likes ? Object.values(c.likes) : [];
+    const idx = c.likes.indexOf(currentUser);
+    if(idx > -1) c.likes.splice(idx, 1); else c.likes.push(currentUser);
+    saveDB(); renderVideos();
+  }
+
+  function addComment(vidId) {
+    const input = document.getElementById(`comment-input-${vidId}`);
+    const text = input.value.trim();
+    if(!text) return;
+    
+    const v = db.videos.find(x => String(x.id) === String(vidId));
+    if(!v) return;
+    if(!v.comments) v.comments = [];
+    
+    v.comments.push({ id: Date.now().toString(), userId: currentUser, text: text, likes: [] });
+    saveDB(); renderVideos();
+  }
+
+  function deleteComment(vidId, commentId) {
+    if(!confirm("Excluir comentário?")) return;
+    const v = db.videos.find(x => String(x.id) === String(vidId));
+    if(!v || !v.comments) return;
+    v.comments = Object.values(v.comments).filter(c => String(c.id) !== String(commentId));
+    saveDB(); renderVideos();
+  }
+
   function getMediaHTML(url) {
     if(!url) return '';
-    
-    // YouTube
     let ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
     if(ytMatch && ytMatch[1]) {
-      return `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${ytMatch[1]}?playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:var(--radius-md); background:#000; display:block;"></iframe>`;
+      return `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${ytMatch[1]}?playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:var(--radius-sm); background:#000; display:block;"></iframe>`;
     }
-    
-    // Instagram (Post ou Reels) - Forçado embed para não redirecionar
     if(url.includes('instagram.com')) {
-       let instaUrl = url.split('?')[0];
-       if(!instaUrl.endsWith('/')) instaUrl += '/';
-       return `<iframe width="100%" height="400" src="${instaUrl}embed" frameborder="0" scrolling="no" allowtransparency="true" style="border-radius:var(--radius-md); background:#fff; display:block;"></iframe>`;
+       let instaUrl = url.split('?')[0]; if(!instaUrl.endsWith('/')) instaUrl += '/';
+       return `<iframe width="100%" height="400" src="${instaUrl}embed" frameborder="0" scrolling="no" allowtransparency="true" style="border-radius:var(--radius-sm); background:#fff; display:block;"></iframe>`;
     }
-    
-    // Facebook
     if(url.includes('facebook.com') && (url.includes('/videos/') || url.includes('/watch'))) {
-       return `<iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false" width="100%" height="220" style="border:none;overflow:hidden;border-radius:var(--radius-md); display:block;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>`;
+       return `<iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false" width="100%" height="220" style="border:none;overflow:hidden;border-radius:var(--radius-sm); display:block;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>`;
     }
-    
-    // Padrão MP4/Link direto
-    // playsinline e webkit-playsinline garante que toque dentro do bloco HTML no celular!
-    return `<video controls playsinline webkit-playsinline src="${url}" style="width:100%; display:block; max-height:400px; border-radius:var(--radius-md); background:#000;"></video>`;
+    return `<video controls playsinline webkit-playsinline src="${url}" style="width:100%; display:block; max-height:400px; border-radius:var(--radius-sm); background:#000;"></video>`;
   }
 
-  // AJUSTE CIRÚRGICO: Lógica de Filtros por Data no renderVideos
   function renderVideos() {
     db.videos = db.videos ? Object.values(db.videos) : []; 
     const feed = document.getElementById('video-feed');
     const title = document.getElementById('feed-title');
     const filterContainer = document.getElementById('video-filter-container');
     const filterSelect = document.getElementById('video-date-filter');
+    const isAdmin = db.users[currentUser].role === 'admin';
     
     feed.innerHTML = '';
     const now = new Date();
     
-    // Seleciona vídeos visíveis
     let visibleVideos = [...db.videos].filter(v => {
         const postDate = new Date(v.datetime);
-        if(postDate > now && db.users[currentUser].role !== 'admin') return false;
+        if(postDate > now && !isAdmin) return false;
         return true;
     }).sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
 
@@ -1103,61 +1179,51 @@
 
     let currentFilterValue = filterSelect ? filterSelect.value : 'hoje';
     
-    // Popula o dropdown automático com as datas disponíveis (sem piscar a tela)
     if(filterSelect) {
        let uniqueDates = new Set();
-       visibleVideos.forEach(v => {
-           if(v.datetime) uniqueDates.add(v.datetime.split('T')[0]);
-       });
+       visibleVideos.forEach(v => { if(v.datetime) uniqueDates.add(v.datetime.split('T')[0]); });
        
-       let optionsHTML = `<option value="hoje">Vídeo Atual (Mais Recente)</option>
-                          <option value="todos">Ver Todos os Vídeos</option>`;
-       
+       let optionsHTML = `<option value="hoje">Vídeo Atual (Mais Recente)</option><option value="todos">Ver Todos os Vídeos</option>`;
        let sortedDates = Array.from(uniqueDates).sort((a,b) => new Date(b) - new Date(a));
        sortedDates.forEach(dateStr => {
            let parts = dateStr.split('-');
-           let formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-           optionsHTML += `<option value="${dateStr}">Dia Específico: ${formatted}</option>`;
+           optionsHTML += `<option value="${dateStr}">Dia Específico: ${parts[2]}/${parts[1]}/${parts[0]}</option>`;
        });
        
        if (filterSelect.getAttribute('data-loaded-dates') !== sortedDates.join(',')) {
            filterSelect.innerHTML = optionsHTML;
            filterSelect.setAttribute('data-loaded-dates', sortedDates.join(','));
-           // Mantém a seleção se existir, senão puxa "hoje"
-           if (optionsHTML.includes(`value="${currentFilterValue}"`)) {
-               filterSelect.value = currentFilterValue;
-           } else {
-               filterSelect.value = 'hoje';
-               currentFilterValue = 'hoje';
-           }
-       } else {
-           currentFilterValue = filterSelect.value;
-       }
+           if (optionsHTML.includes(`value="${currentFilterValue}"`)) filterSelect.value = currentFilterValue;
+           else { filterSelect.value = 'hoje'; currentFilterValue = 'hoje'; }
+       } else { currentFilterValue = filterSelect.value; }
     }
 
     let count = 0;
-
     visibleVideos.forEach(v => {
       const postDate = new Date(v.datetime);
       const postDateStr = v.datetime.split('T')[0];
       
-      // Lógica de visualização do filtro
-      if(currentFilterValue === 'hoje' && count > 0) return; // 'hoje' mostra apenas o 1º (Mais recente)
-      if(currentFilterValue !== 'hoje' && currentFilterValue !== 'todos' && currentFilterValue !== postDateStr) return; // Mostra data específica
-      
+      if(currentFilterValue === 'hoje' && count > 0) return; 
+      if(currentFilterValue !== 'hoje' && currentFilterValue !== 'todos' && currentFilterValue !== postDateStr) return; 
       count++;
       
+      // LOGIC DE CURTIDAS DO VÍDEO
       const likesArray = v.likes ? Object.values(v.likes) : [];
       const isLiked = likesArray.includes(currentUser);
-      const heartSVG = isLiked 
-        ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="#e74c3c" stroke="#e74c3c" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`
-        : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+      const heartSVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
       const heartClass = isLiked ? 'liked' : '';
-      
       const likeUsernames = likesArray.map(key => db.users[key] ? db.users[key].username : key);
-      let likesText = likeUsernames.length > 0 ? `Curtido por <b>${likeUsernames.join(', ')}</b>` : 'Seja a primeira a curtir';
-      const adminTag = postDate > now ? `<span style="font-size:10px; background:var(--caramel); color:var(--brown); padding:2px 8px; border-radius:10px; margin-left:8px;">Agendado</span>` : '';
+      const likeCountNum = likesArray.length;
+      
+      // Ajuste na exibição numérica de curtidas
+      let likesText = 'Seja a primeira a curtir';
+      if(likeCountNum > 0) {
+        likesText = `<span style="color:var(--brown); font-weight:bold;">${likeCountNum} curtida${likeCountNum > 1 ? 's' : ''}</span><br>Curtido por ${likeUsernames.slice(0, 2).join(', ')}${likeCountNum > 2 ? ' e outros' : ''}`;
+      }
+      
+      const adminTag = postDate > now ? `<span style="font-size:10px; background:var(--caramel-light); color:var(--brown); padding:4px 10px; border-radius:12px; margin-left:8px;">Agendado</span>` : '';
 
+      // BOTÃO SOCIAL
       let socialBtnHTML = '';
       if (v.platform) {
          let bgClass = 'bg-default';
@@ -1166,22 +1232,55 @@
          else if(v.platform === 'YouTube') bgClass = 'bg-youtube';
          socialBtnHTML = `<a href="${v.socialLink || v.url}" target="_blank" class="btn-social ${bgClass}">Assistir no ${v.platform}</a>`;
       }
+      
+      // COMENTÁRIOS HTML
+      let commentsHTML = `<div class="comment-section">`;
+      const comments = v.comments ? Object.values(v.comments) : [];
+      comments.forEach(c => {
+        const user = db.users[c.userId] || { username: 'Usuário', photo: '' };
+        const cLikes = c.likes ? Object.values(c.likes) : [];
+        const cLiked = cLikes.includes(currentUser);
+        // Fallback SVG Avatar
+        const avatarUrl = user.photo || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23E8DFD3"/><text x="50" y="65" font-family="Georgia" font-size="45" fill="%238E7C68" text-anchor="middle">${user.username.charAt(0).toUpperCase()}</text></svg>`;
+        
+        commentsHTML += `
+        <div class="comment-item">
+          <div class="comment-avatar" style="background-image:url('${avatarUrl}')"></div>
+          <div style="flex:1;">
+             <div class="comment-content">
+               <div class="comment-header"><span class="comment-name">${user.username}</span></div>
+               <div class="comment-text">${c.text}</div>
+             </div>
+             <div class="comment-actions">
+               <button class="comment-action-btn ${cLiked ? 'liked' : ''}" onclick="toggleLikeComment('${v.id}', '${c.id}')">
+                  ${cLiked ? '❤️' : '🤍'} ${cLikes.length > 0 ? cLikes.length : 'Curtir'}
+               </button>
+             </div>
+          </div>
+          ${isAdmin ? `<button style="background:none; border:none; color:#c0392b; font-size:20px; align-self:flex-start; padding:0 4px; cursor:pointer;" onclick="deleteComment('${v.id}', '${c.id}')">×</button>` : ''}
+        </div>`;
+      });
+
+      commentsHTML += `
+        <div class="add-comment-form">
+           <input type="text" id="comment-input-${v.id}" class="add-comment-input" placeholder="Adicione um comentário..." onkeydown="if(event.key==='Enter')addComment('${v.id}')">
+           <button class="add-comment-btn" onclick="addComment('${v.id}')">Enviar</button>
+        </div>
+      </div>`;
 
       let adminBtnsHTML = '';
-      if (db.users[currentUser] && db.users[currentUser].role === 'admin') {
+      if (isAdmin) {
          adminBtnsHTML = `
          <div class="admin-actions">
-           <button class="btn-caramel" style="flex:1; font-size:11px; padding:6px 12px;" onclick="editVideo('${v.id}')">Editar</button>
-           <button class="btn-caramel" style="flex:1; font-size:11px; padding:6px 12px; color:#c0392b; border-color:#e6a8a1;" onclick="deleteVideoItem('${v.id}')">Excluir</button>
+           <button class="btn-caramel" style="flex:1; font-size:12px; padding:8px;" onclick="editVideo('${v.id}')">Editar</button>
+           <button class="btn-caramel" style="flex:1; font-size:12px; padding:8px; background:#FFF0F0; color:#c0392b;" onclick="deleteVideoItem('${v.id}')">Excluir</button>
          </div>`;
       }
 
       const card = document.createElement('div');
       card.className = 'video-card';
       card.innerHTML = `
-        <div class="video-wrapper">
-          ${getMediaHTML(v.url)}
-        </div>
+        <div class="video-wrapper">${getMediaHTML(v.url)}</div>
         <div class="video-title">${v.title} ${adminTag}</div>
         <div class="video-desc">${v.desc}</div>
         ${socialBtnHTML}
@@ -1189,6 +1288,7 @@
           <button class="like-btn ${heartClass}" onclick="toggleLikeVideo('${v.id}')">${heartSVG}</button>
           <div class="like-users">${likesText}</div>
         </div>
+        ${commentsHTML}
         ${adminBtnsHTML}
       `;
       feed.appendChild(card);
@@ -1200,13 +1300,9 @@
   // ===== NAVEGAÇÃO E RECURSOS LOCAIS =====
   function showScreen(id, btn) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => {
-      b.classList.remove('active');
-      b.querySelector('svg').setAttribute('stroke', '#7A6A58');
-    });
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('sc-' + id).classList.add('active');
     btn.classList.add('active');
-    btn.querySelector('svg').setAttribute('stroke', '#5A4633');
     document.querySelector('.content').scrollTop = 0;
   }
 
@@ -1235,6 +1331,7 @@
   }
   
   function toggleHabit(el) { el.classList.toggle('done'); }
+  function toggleAuto(el) { el.classList.toggle('done'); }
   
   function marcarDevocional() {
     const btn = document.getElementById('dev-btn');
@@ -1277,7 +1374,6 @@
     inp.value = '';
   }
   function toggleTask(el) { el.classList.toggle('done'); }
-  function toggleAuto(el) { el.classList.toggle('done'); }
 </script>
 
 </body>
